@@ -1,21 +1,13 @@
----
-title: "SDSU-DC Preterm Birth Prediction Challenge, Transcriptomics: Part 1"
-author: |
-  | James Young, Dakota York, Bikram Das, Amrit Koiala, and Alex Soupir
-  | South Dakota State University, Brookings, South Dakota, United States of America
-date: "16 August 2019"
-output: rmarkdown::github_document
-bibliography: preterm.bib
----
+SDSU-DC Preterm Birth Prediction Challenge, Transcriptomics: Part 1
+================
+James Young, Dakota York, Bikram Das, Amrit Koiala, and Alex Soupir
+South Dakota State University, Brookings, South Dakota, United States of America
+16 August 2019
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(reticulate)
-library(kableExtra)
-```
 This document may be made public.
 
-# Background/Intro
+Background/Intro
+================
 
 The approach used in this document was merely first experience trial and error. Initial thoughts were to try several different approaches to see what would work and what would not work, trying to get the lowest RMSE from a train/test split of the data with gestational age provided. Using models with the lowest RMSE, and those with the lowest difference between the train/test split RMSE values, the unknown gestational age data is predicted in an ensemble. The gestational ages were weighted according to the differences between the train/test split RMSE values. Rather than using a single model, the thoughts were that an ensemble would balance those gestational ages that models were uncertain of.
 
@@ -26,13 +18,12 @@ This document is an explanation of how data was processed and use to predict the
 
 Models were trained on gestational age probeset data, with a train/test split of 80%/20%. Models were looped through using a Keras model with 2 layers and 10,000 epochs: layer 1 containing values between 1 and 25, and layer 2 containing values between 0 and 50. Best models were determined based on those with a testing RMSE less than 4, and a difference between the train/test RMSE values of 1. Further, based on the difference between the train/test RMSE values, each model was given a weight, with the model resulting in the lowest difference having more weight than the model with a greater difference. The final gestational age values were submitted, receiving a submission RMSE of 5.6853.
 -->
-
-
-# Methods
+Methods
+=======
 
 Python codes were run using Google Colab and the on campus HPC cluster. The entirety of the probeset data was imported and split into 8 data frames with 100,000 features, and 1 data frame with the remaining 125,030 features. Each data frame was than looped through, splitting into training and testing data for the XGBoost model. XGBoost determined the important features of the data frame in predicting the gestational age. These features were then concatenated to the previous data frames best features for a list of features from *all* data frames that are important. With the list of all of the important features, the main probeset data frame was filtered to include only the important features, and then written to a *.csv* file, along with the submission data lacking the gestational age.
 
-R was run on a personal computer. In order to run Keras and Tensorflow, first Tensorflow had to be installed using *conda install* through anaconda prompt. Then after *install.packages('keras')* in R, *install_keras()* had to be executed. Since an NVIDIA GPU was not available, *version = 'gpu'* was not used as a parameter while installing Keras. [@chollet2017kerasR]
+R was run on a personal computer. In order to run Keras and Tensorflow, first Tensorflow had to be installed using *conda install* through anaconda prompt. Then after *install.packages('keras')* in R, *install\_keras()* had to be executed. Since an NVIDIA GPU was not available, *version = 'gpu'* was not used as a parameter while installing Keras. (Chollet, Allaire, and others 2017)
 
 Data from the XGBoost filtering was imported into R and then scaled based on the mean and standard deviation using the *scale()* fuction. The submission data was scaled based on the mean and standard deviation of the training data to maintain consistency in predictions from the models. Keras models were run with 1 and 2 layers. The first layer was looped through with 1 to 25 nodes and the second layer was looped through with 0 to 50 nodes to determine which network architecture performed best in predicting the gestational age of the test set.
 
@@ -40,7 +31,7 @@ Best models were determined based on the testing split RMSE and the difference b
 
 ### Data Filtering with Python
 
-```{python, eval = FALSE}
+``` python
 import numpy as np
 np.random.seed(333)
 import pandas as pd
@@ -70,34 +61,34 @@ y1 = df[df.columns[925032]]
 for i in range(0, len(XList)):
 
   #Split that chunk into train and test set
-	X_train, X_test, y_train, y_test = train_test_split(XList[i], y1,test_size=0.20,
-	                                                    random_state=333)
-	eval_set = [(X_test, y_test)]
-	
-	#Run xgboost on chunk
-	xgb = xgboost.XGBRegressor(n_estimators=30000, learning_rate=0.15, gamma=0,
-	                           subsample=1, colsample_bytree=1, max_depth=1)
-	xgb.fit(X_train, y_train, early_stopping_rounds=50, eval_metric="rmse",
-	        eval_set=eval_set, verbose=True)
-	
-	#Extract only the features with importances > 0 and reform DataFrame
-	features = pd.DataFrame(xgb.feature_importances_)
-	
-	XList[i] = pd.DataFrame(XList[i])
-	XList[i] = XList[i].T
-	featuresIndex = XList[i].index.values
-	features.reset_index(drop=True, inplace=True)
-	numbersIndex = features.index.values
-	XList[i].reset_index(drop=True, inplace=True)
-	frames = [XList[i], features]
-	XList[i] = pd.concat(frames, axis=1)
-	dictionarySamples = dict(zip(numbersIndex, featuresIndex))
-	
-	XList[i].rename(index=dictionarySamples, inplace=True)
-	XList[i] = XList[i][(XList[i] != 0).all(1)]
-	XList[i] = XList[i].drop(XList[i].columns[367], axis=1)
-	XList[i] = XList[i].T
-	
+    X_train, X_test, y_train, y_test = train_test_split(XList[i], y1,test_size=0.20,
+                                                        random_state=333)
+    eval_set = [(X_test, y_test)]
+    
+    #Run xgboost on chunk
+    xgb = xgboost.XGBRegressor(n_estimators=30000, learning_rate=0.15, gamma=0,
+                               subsample=1, colsample_bytree=1, max_depth=1)
+    xgb.fit(X_train, y_train, early_stopping_rounds=50, eval_metric="rmse",
+            eval_set=eval_set, verbose=True)
+    
+    #Extract only the features with importances > 0 and reform DataFrame
+    features = pd.DataFrame(xgb.feature_importances_)
+    
+    XList[i] = pd.DataFrame(XList[i])
+    XList[i] = XList[i].T
+    featuresIndex = XList[i].index.values
+    features.reset_index(drop=True, inplace=True)
+    numbersIndex = features.index.values
+    XList[i].reset_index(drop=True, inplace=True)
+    frames = [XList[i], features]
+    XList[i] = pd.concat(frames, axis=1)
+    dictionarySamples = dict(zip(numbersIndex, featuresIndex))
+    
+    XList[i].rename(index=dictionarySamples, inplace=True)
+    XList[i] = XList[i][(XList[i] != 0).all(1)]
+    XList[i] = XList[i].drop(XList[i].columns[367], axis=1)
+    XList[i] = XList[i].T
+    
 #Add all filtered chunkes back together
 FinalTrainSet = pd.concat(XList, axis=1)
 
@@ -118,7 +109,7 @@ TrainHandle = FinalTrainSet.to_csv('filteredprobeset100k_train_7_4.csv',
 
 ### Importing Keras Library to R
 
-```{r library, eval = FALSE}
+``` r
 if (!requireNamespace("keras", quietly = TRUE))
   install.packages("keras")
 library(keras)
@@ -131,7 +122,7 @@ install_keras()
 
 Data that was previously determined using Python XGBoost to be of greatest importance in predicting gestational age was imported into R. Data with a gestational age provided was split for training the Keras models, with 80% used for training the model and 20% for testing or validating the model. The submission data was scaled based on the testing data.
 
-```{r, eval = FALSE}
+``` r
 #import training dataset
 probs = read.csv('filteredprobeset15lr_train_7_4.csv', row.names = 1)
 
@@ -175,9 +166,10 @@ p.submission_data = scale(subs, center = p.col_means_train, scale = p.col_stddev
 ```
 
 ### Create table for storing RMSE and architecture
+
 Rather than storing every model, a table was created to store the RMSE values of the train/test split data. This table contained the run count, the number of nodes that were in the first layer, number of nodes in the second layer, and the RMSE values of the training data and the testing data. This will allow for determining which models are the best later on.
 
-```{r, eval = FALSE}
+``` r
 #create empty table to store model RMSE values in
 rootmse = data.frame(matrix(NA, nrow = 10000, ncol = 5))
 colnames(rootmse)[1] = 'Run'
@@ -190,9 +182,10 @@ rowz = 1
 ```
 
 ### Looping through Keras
+
 Keras was used for creating the model, and each time through the loop the seed was set to ensure that data was reproducible. For models where there wasn't a second layer involved the second for loop was commented out, as well as the second dense call in building the model.
 
-```{r, eval = FALSE}
+``` r
 for(H1N in 1:25){
   for(H2N in 1:50){
     use_session_with_seed(333, disable_gpu = FALSE, disable_parallel_cpu = FALSE)
@@ -251,13 +244,14 @@ for(H1N in 1:25){
 ```
 
 ### Finding top models
+
 Lowest RMSE between train/test
 
 With the table created previously, the difference between the training RMSE and the testing RMSE was calculated. Those models with a testing RMSE less than 4 and difference less than 1 were subset into a new table. This new table was used to calculate the weight of each model. This will give the models with the lowest difference the greatest weight in the ensemble results.
 
 The models that are in the new table are stored in 2 variables with the node counts. These will be used in the next section.
 
-```{r}
+``` r
 #read in RMSE table
 rmseResults = read.csv('Root Mean Square Error DL - Copy.csv')
 rmseResults$Difference = rmseResults$TestRMSE - rmseResults$TrainRMSE
@@ -272,18 +266,7 @@ w1.sum = sum(rmseL3D1$W1)
 rmseL3D1$Weight = rmseL3D1$W1/w1.sum
 ```
 
-```{r, echo=FALSE}
-rmseL3D1 = rmseL3D1[order(-rmseL3D1$Weight),]
-rownames(rmseL3D1) = c()
-
-kable(rmseL3D1[1:50,c(3:7,9)], "latex",
-      longtable = T,
-      caption = "Top Keras models with a Testing RMSE less than 4 and difference between the train RMSE and test RMSE of 1. Final calculated model weights are also displayed.",
-      booktabs = T) %>%
-  kable_styling(latex_options = c("striped", "repeat_header"))
-```
-
-```{r, eval = FALSE}
+``` r
 #set hidden layer nodes of the top models
 H1N.L = rmseL3D1$H1Nodes
 H2N.L = rmseL3D1$H2Nodes
@@ -301,9 +284,10 @@ rownames(allPredicts.subs) = row.names(p.submission_data)
 ```
 
 ### Rerunning top models and predicting GA on submission data
+
 The models that were filtered as the best models, training is rerun storing the predictions for the submission set.
 
-```{r, eval = FALSE}
+``` r
 for(i in seq(H1N.L)){
   use_session_with_seed(333, disable_gpu = FALSE, disable_parallel_cpu = FALSE)
   p.build_model <- function() {
@@ -358,9 +342,10 @@ for(i in seq(H1N.L)){
 ```
 
 ### Calculating weights based on models with closest train/test RMSE
+
 The table that was produced in the previous section is used along with the weights to calculated an ensembled gestational age. After the individual models are weighted, they are added together for the final gestational age prediction. The values that are greater than 42 are reassigned a gestational age of 41.99 and the values that are less than 8 are reassigned a gestational ages of 8.01. Lastly, gestational ages are rounded to 1 decimal place before submission and then written to a csv file.
 
-```{r, eval = FALSE}
+``` r
 #make new data frames for calcuting weighted gestational ages
 allPredicts.train.weighted = allPredicts.train
 allPredicts.test.weighted = allPredicts.test
@@ -397,17 +382,26 @@ write.csv(submission_dataframe,
           row.names = FALSE)
 ```
 
-# Conclusion/Discussion
+Conclusion/Discussion
+=====================
+
 After submitting the predicted gestational ages, the scored RMSE was 5.6853. This RMSE value was very different from the ensemble RMSE of the training and testing data. The RMSE fo the training split was 2.9915 and the RMSE of the testing split was 3.7729. These differences may be due to the submission data having different skews in the expression data, or the train/test split having different skews simply by chance since the train/test split was made randomly.
 
-Another source that may have caused the large difference between the training data and submission data might originate in the XGBoost filtering of subset data instead of filtering the all of the data at one time. This was difficult, however, because initiallly the data worked on within Google Colab where storage and RAM are limited, as well as all of the models in R having to be trained on a personal computer which takes a great deal of time. If we were to run everything again from the beginning, this is a potential area for improvement. 
+Another source that may have caused the large difference between the training data and submission data might originate in the XGBoost filtering of subset data instead of filtering the all of the data at one time. This was difficult, however, because initiallly the data worked on within Google Colab where storage and RAM are limited, as well as all of the models in R having to be trained on a personal computer which takes a great deal of time. If we were to run everything again from the beginning, this is a potential area for improvement.
 
-# Authors statement
-  - James Young: Writing Python code in Google Colab for filtering features
-  - Dakota York: Working with the SDSU HPC and refining Python code
-  - Alex Soupir: Work in R
-  
-# Acknoledgements
+Authors statement
+=================
+
+-   James Young: Writing Python code in Google Colab for filtering features
+-   Dakota York: Working with the SDSU HPC and refining Python code
+-   Alex Soupir: Work in R
+
+Acknoledgements
+===============
+
 We would like to thank those from the SDSU high performance computing team who helped get the modules needed to run the python filtering script.
 
-# References
+References
+==========
+
+Chollet, François, JJ Allaire, and others. 2017. “R Interface to Keras.” <https://github.com/rstudio/keras>; GitHub.
