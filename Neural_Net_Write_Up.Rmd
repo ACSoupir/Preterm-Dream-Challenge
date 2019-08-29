@@ -1,5 +1,5 @@
 ---
-title: "SDSU-DC Preterm Birth Prediction Challenge, Tanscriptomics: Part 1"
+title: "SDSU-DC Preterm Birth Prediction Challenge, Transcriptomics: Part 1"
 author: |
   | James Young, Dakota York, Bikram Das, Amrit Koiala, and Alex Soupir
   | South Dakota State University, Brookings, South Dakota, United States of America
